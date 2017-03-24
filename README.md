@@ -2,6 +2,7 @@
 GUI for rotorcraft tradespace exploration 
 
  steps to develop the GUI:
+ 
     1 edit the GuiStuff.ui using qtdesigner and save
   
     2 use the ui_to_py.bat file customized for your system
