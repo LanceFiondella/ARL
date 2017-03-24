@@ -1,0 +1,1 @@
+"C:\Users\rdavi\Anaconda2\Library\bin\pyuic5.bat" GuiStuff.ui > GuiStuff.py
