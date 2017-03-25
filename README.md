@@ -1,5 +1,4 @@
-# Welcome to The ARL-Project!
-###GUI for Rotorcraft Tradespace Exploration
+# Welcome to The ARL-Project!  ### GUI for Rotorcraft Tradespace Exploration
 
 **Program:**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AWESOME NAME HERE
 **Version:**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pre-Alpha  
