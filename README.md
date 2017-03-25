@@ -1,4 +1,4 @@
-# ARL-Poject
+# ARL-Project
 GUI for rotorcraft tradespace exploration 
 
  steps to develop the GUI:
