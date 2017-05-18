@@ -103,15 +103,19 @@ class Availability:
         return pg.estimate_gradient_h(lambda x: self.fitness(x), x)
 
 
-prob = pg.problem(Availability(len(componentIndices), 10**9))
+prob = pg.problem(Availability(len(componentIndices), 10**7))
 print(prob)
 
-algo = pg.algorithm(pg.nlopt(solver = "slsqp"))
+nl = pg.nlopt(solver = "slsqp")
+nl.xtol_rel = 1e-54
+algo = pg.algorithm(nl)
 
 algo.set_verbosity(100)
 
 
-pop  = pg.population(prob,1000)
+pop  = pg.population(prob,10)
+
+
 
 pop  = algo.evolve(pop)
 print(pop.champion_x)
