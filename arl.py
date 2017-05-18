@@ -106,15 +106,13 @@ class Availability:
 prob = pg.problem(Availability(len(componentIndices), 10**7))
 print(prob)
 
-
-algo = pg.algorithm(pg.cstrs_self_adaptive(iters=20, algo=pg.de(10)))
+nl = pg.nlopt(solver="cobyla")
+nl.xtol_rel = 1e-53
+algo = pg.algorithm(pg.cstrs_self_adaptive(iters=20, algo=nl))
 
 algo.set_verbosity(3)
 
-
 pop  = pg.population(prob,100)
-
-
 
 pop  = algo.evolve(pop)
 print(pop.champion_x)
