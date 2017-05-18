@@ -84,7 +84,7 @@ class Availability:
         for idx in componentIndices:
             A = avail(idx, x[componentIndices.index(idx)])
             product *= A
-        ci1 = (x[0]+x[1]) - self.budget
+        ci1 = sum(x) - self.budget
         return [-product, ci1]
     
     def get_nic(self):
@@ -106,14 +106,13 @@ class Availability:
 prob = pg.problem(Availability(len(componentIndices), 10**7))
 print(prob)
 
-nl = pg.nlopt(solver = "slsqp")
-nl.xtol_rel = 1e-54
-algo = pg.algorithm(nl)
 
-algo.set_verbosity(100)
+algo = pg.algorithm(pg.cstrs_self_adaptive(iters=20, algo=pg.de(10)))
+
+algo.set_verbosity(3)
 
 
-pop  = pg.population(prob,10)
+pop  = pg.population(prob,100)
 
 
 
