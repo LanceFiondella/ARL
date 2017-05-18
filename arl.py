@@ -107,6 +107,10 @@ prob = pg.problem(Availability(len(componentIndices), 10**9))
 print(prob)
 
 algo = pg.algorithm(pg.nlopt(solver = "slsqp"))
+
+algo.set_verbosity(100)
+
+
 pop  = pg.population(prob,1000)
 
 pop  = algo.evolve(pop)
