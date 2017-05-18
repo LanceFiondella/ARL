@@ -8,17 +8,13 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.special import lambertw
 from scipy.optimize import differential_evolution, minimize, fmin_cobyla, fmin_slsqp
 
-from mystic.termination import NormalizedChangeOverGeneration as NCOG
-from mystic.symbolic import generate_penalty, generate_conditions
-from mystic.symbolic import generate_constraint, generate_solvers, simplify
-from mystic.solvers import diffev
+import pygmo as pg
 
 budget = 10**9
 
 eps = 0.0001
 
 data = pandas.read_excel(os.getcwd() + '/sample.xlsx')
-
 
 componentIndices = [int(i) for i in str.split(input('Enter component indices:'))]
 
@@ -72,31 +68,47 @@ def eta(gammaVec):
     nGamma = (budget - sum(gammaVec))/unitCost(gammaVec)
     return nGamma
 
+
 avail_ = []
 budget_  = []
 eta_ = []
 
 
-def mysticCompute():
-    for b in range(10**5, budget, 10**5):
-        equations = "{} <= {}".format("+".join((["x{}".format(i) for i in range(len(componentIndices))])), b)
-        cf = generate_constraint(generate_solvers(simplify(equations)))
-        pf = generate_penalty(generate_conditions(equations))
-        x0 = [b/len(componentIndices) for i in componentIndices]
-        bounds = [(0,b) for i in componentIndices]
-        result = diffev(sys, x0=x0, bounds=bounds, constraints=cf, penalty=pf, npop=40, disp=True)
-        print(result)
-        avail_.append(-sys(result))
-        budget_.append(b)
+class Availability:
 
-        print(eta(result))
-        eta_.append(eta(result))
+    def __init__(self, dim, budget):
+        self.dim = dim
+        self.budget = budget
+    def fitness(self,x):
+        product = 1.
+        for idx in componentIndices:
+            A = avail(idx, x[componentIndices.index(idx)])
+            product *= A
+        ci1 = (x[0]+x[1]) - self.budget
+        return [-product, ci1]
+    
+    def get_nic(self):
+        return 1
+    
+    def get_bounds(self):
+        return ([0]*self.dim,[self.budget]*self.dim)
+
+    def get_name(self):
+        return "Availability Function"
+
+    def get_extra_info(self):
+        return "\tDimension: " + str(self.dim)
+    
+    def gradient(self, x):
+        return pg.estimate_gradient_h(lambda x: self.fitness(x), x)
 
 
-mysticCompute()
-plt.plot( budget_, avail_)
-plt.show()
-plt.plot(budget_, eta_ )
-plt.show()
-plt.plot(eta_, avail_)
-plt.show()
+prob = pg.problem(Availability(len(componentIndices), 10**9))
+print(prob)
+
+algo = pg.algorithm(pg.nlopt(solver = "slsqp"))
+pop  = pg.population(prob,1000)
+
+pop  = algo.evolve(pop)
+print(pop.champion_x)
+print(pop.champion_f)
