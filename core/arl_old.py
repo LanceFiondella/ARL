@@ -18,10 +18,11 @@ from mystic.solvers import diffev
 import pygmo as pg
 
 budget = 10**9
+ba = 10**7
 
 eps = 0.0001
 
-data = pandas.read_excel(os.getcwd() + '/sample.xlsx')
+data = pandas.read_excel('../sample.xlsx')
 
 # componentIndices = [int(i) for i in str.split(input('Enter component indices:'))]
 
@@ -29,7 +30,7 @@ data = pandas.read_excel(os.getcwd() + '/sample.xlsx')
 def mttf(idx,gamma):
     la = 1 / float(data['Ma'][idx])
     lb = 1 / float(data['Mb'][idx])
-    exp_part_a = (data['c0'][idx] + data['cv'][idx]**2 * gamma)/data['mub'][idx]
+    exp_part_a = (data['c0'][idx] + data['cv'][0]**2 * gamma)/data['mub'][idx]
     pl = ((data['c0'][idx] * np.exp(exp_part_a))/data['mub'][idx])
     w = lambertw(pl)
     b = (data['c0'][idx] * data['mud'][idx])/(data['mub'][idx] * w)
@@ -39,7 +40,7 @@ def mttf(idx,gamma):
 
 
 def repParts(idx, gamma):
-    P = ((data['L'][idx]/mttf(idx, gamma))) - eps
+    P = ((data['L'][0]/mttf(idx, gamma))) - eps
     return np.floor(P)
 
 
@@ -56,8 +57,9 @@ def avail(idx, gamma):
 
 def sys(gammaVec):
     product = 1.
-    for idx in componentIndices:
-        A = avail(idx,gammaVec[componentIndices.index(idx)])
+    for i, idx in enumerate(componentIndices):
+        #A = avail(idx,gammaVec[componentIndices.index(idx)])
+        A = avail(idx,gammaVec[i])
         product *=A
     
     return -product
@@ -65,8 +67,9 @@ def sys(gammaVec):
 
 def unitCost(gammaData):
     tmp = []
-    for idx in componentIndices:
-        Cs = cost(idx,gammaData[componentIndices.index(idx)])
+    for i, idx in enumerate(componentIndices):
+        #Cs = cost(idx,gammaData[componentIndices.index(idx)])
+        Cs = cost(idx,gammaData[i])
         tmp.append(Cs)
     return sum(tmp)
 
@@ -159,19 +162,25 @@ def compute():
         eta_.append(eta(pop.champion_x))
 
 def mysticCompute():
-    for b in range(10**5, budget, 10**7):
+    #for b in range(10**5, budget,  ba):
+    results = []
+    for b in range(10**5, ba, (ba-10**5)/20):
         equations = "{} <= {}".format("+".join((["x{}".format(i) for i in range(len(componentIndices))])), b)
+        print(equations)
         cf = generate_constraint(generate_solvers(simplify(equations)))
         pf = generate_penalty(generate_conditions(equations))
         x0 = [b/len(componentIndices) for i in componentIndices]
         bounds = [(0,b) for i in componentIndices]
         result = diffev(sys, x0=x0, bounds=bounds, constraints=cf, penalty=pf, npop=10, disp=True)
         print(result)
+        results.append(result)
         avail_.append(-sys(result))
         budget_.append(b)
-
+                
         print(eta(result))
         eta_.append(eta(result))
+    return results
 # plt.xlabel("# of components")
 # plt.ylabel('time taken in seconds')
 # plt.show()
+print(mttf(0, 0))
