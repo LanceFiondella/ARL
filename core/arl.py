@@ -2,7 +2,7 @@ import pandas as pd
 import math
 import numpy as np
 from scipy.special import lambertw
-from scipy.optimize import minimize
+from scipy.optimize import minimize, brute
 import matplotlib.pyplot as plt
 
 
@@ -93,14 +93,23 @@ class ARL:
         #print( '({} - {}) / {}'.format(self.b, sum(gammaVec), self.unit_cost(gammaVec)))
         return sign*math.floor((self.b - sum(gammaVec))/self.unit_cost(gammaVec))
     
+    def constraint(self, vec):
+        result = self.ba
+        for x in vec:
+            result -= x
+        return result
+    
     def maximize_n_gamma(self):
-        result = minimize(self.n_gamma, [-1.0,1.0], args=(-1.0,), method='SLSQP', options={'disp':True})
+        cons = ({'type': 'ineq', 'fun': self.constraint})
+        bnds = ((0, None), (0, None))
+        result = minimize(self.n_gamma, (self.ba/8,self.ba/8), method='SLSQP', constraints = cons, args=(-1.0,), options={'disp':True}, bounds=bnds)
+        #result = brute(self.n_gamma, ((0, self.ba), (0, self.ba)), args=(-1.0,), disp=True)
         return result
     
     
     def mysticCompute(self):
         #for b in range(10**5, budget,  ba):
-        for b in range(0, int(self.ba), int(self.ba)/self.intermediate):
+        for b in range(0, int(self.ba), int(self.ba/self.intermediate)):
             equations = "{} <= {}".format("+".join((["x{}".format(i) for i in range(len(self.componentIndices))])), b)
             #print(equations)
             cf = generate_constraint(generate_solvers(simplify(equations)))
@@ -164,6 +173,8 @@ if __name__ == '__main__':
     df = pd.read_excel('../sample.xlsx')
     comp = [0, 1]
     a = ARL(df, comp)
+    print(a.n_gamma([a.ba/2,a.ba/2]))
+    print(a.maximize_n_gamma().x)
     #print(a.mysticCompute())
     #print(a.eta_)
     

@@ -53,8 +53,9 @@ class MainWindow(QMainWindow):
 
     def openProject(self):
         fname = QFileDialog.getOpenFileName(self, 'Open File','.', filter='*.xlsx')
-        self.df = pd.read_excel(fname[0])
-        self.populateTable()
+        if len(fname[0]) > 0:
+            self.df = pd.read_excel(fname[0])
+            self.populateTable()
     
     def populateTable(self):
         self.budgetText.setText(str(self.df['B'].iloc[0]))
@@ -227,193 +228,218 @@ class MainWindow(QMainWindow):
             
     
     def showResultWindow(self):
-        self.resultDialog = QDialog()
-        layout = QVBoxLayout()
         
-        
-        self.generateComboBox()
-        xAxisLength = self.generateXAxisBox()
-        
-        self.tabs = QTabWidget()
-        self.generateTabs(0)
-        
-        layout.addWidget(self.comboBox)
-        #layout.addLayout(xAxisLength)
-        layout.addWidget(self.tabs)
-        
-        self.resultDialog.setLayout(layout)
+        self.resultDialog = ResultWindow(self.arl)
         self.resultDialog.show()
     
-    def generateXAxisBox(self):
-        layout = QHBoxLayout()
-        layout.addWidget(QLabel('Availability improvement budget limit'))
-        self.baLimitTextBox = QLineEdit(str(self.arl.ba))
-        self.recomputeButton = QPushButton('Recompute')
-        self.recomputeButton.clicked.connect(self.recompute)
-        layout.addWidget(self.baLimitTextBox)
-        layout.addWidget(self.recomputeButton)
-        return layout
-    
-    def recompute(self):
-        self.arl.ba = int(self.baLimitTextBox.text())
-        self.generateTabs(self.comboBox.currentIndex())
-    
-    def generateComboBox(self):
-        self.comboBox = QComboBox()
-        self.comboBox.addItem('Impact of investment')
-        self.comboBox.addItem('Availability')
-        self.comboBox.addItem('Marginal Utility of Subsystems')
-        self.comboBox.addItem('System Availability')
-        self.comboBox.addItem('Investment in reliability vs. Fleet size')
-        self.comboBox.addItem('System availability vs. Fleet size')
-        self.comboBox.currentIndexChanged.connect(self.generateTabs)
-        #return comboBox
+
     
     
-    def generateTabs(self, index):
-        #print(index)
-        self.tabs.clear()
-        self.plotWidget = QWidget()
-        self.tableWidget = QWidget()
-        self.plotLayout = self.plotFig(index)
-        self.plotWidget.setLayout(self.plotLayout)
-               
-        self.tableLayout = self.genTable(index)
-        self.tableWidget.setLayout(self.tableLayout)
+    
+   
+ 
+ 
+ 
+class ResultWindow(QDialog):
+    """
+    Defines the Results window
+    """
+    def __init__(self, arl):
+        super(ResultWindow, self).__init__()
+        self.arl = arl
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.genTabs())
+        self.setLayout(self.layout)
+        self.setGeometry(300, 300, 800, 600)
+    
+    def genTabs(self):
+        """
+        Generates top level tabs
+        """
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.genSLATab(), 'Subsystem Level Assessment')
+        self.tabs.addTab(self.genFSTab(), 'Optimal subsystem investment to maximize fleet size')
+        self.tabs.addTab(self.genAVTab(), 'Optimal subsystem investment to maximize availability')
         
-        self.tabs.addTab(self.plotWidget, 'Plot')
-        self.tabs.addTab(self.tableWidget, 'Data Table')
-        
-        #return self.tabs
+        return self.tabs
     
-    def genTable(self, index):
+    def genSLATab(self):
+        """
+        Generates contents of Subsystem Level Assessment tab
+        """
+        self.SLATab = QWidget()
+        self.SLAlayout = QVBoxLayout(self.SLATab)
+        self.SLAcomboBox = QComboBox()
+        self.SLAcomboBox.addItems(['Impact of investment', 'Availability'])
+        
+        self.SLAcomboBox.activated.connect(self.SLAdata)
+        self.SLAtabs = QTabWidget()
+        
+        self.SLAlayout.addWidget(self.SLAcomboBox)
+        self.SLAlayout.addWidget(self.SLAtabs)
+        self.SLAdata(0)
+        
+        #self.SLATab.setLayout(layout)
+        return self.SLATab
+    
+    def SLAdata(self, select):
+        """
+        Handles the Subsystem Level Assessment tab's drop down menu
+        """
+        gammas = np.linspace(0, self.arl.ba, num = self.arl.intermediate)
+        plot = QWidget()
+        #layout.addWidget(self.SLAcomboBox)
+        table = QWidget()
+        
+        if select == 0:
+            self.arl.get_lc_costs(gammas)
+            plot.setLayout(self.genPlot(xlabel = "Investment in reliability $\gamma_i$", 
+                         ylabel = "Subsystem Lifecycle Cost ($C_i$)", 
+                         title ="Impact of investment in reliability improvement\n on subsystem lifecycle cost",
+                         gammas = gammas,
+                         y = self.arl.lc_cost))
+            table.setLayout(self.genTable(y =  self.arl.lc_cost,
+                                          gammas = gammas,
+                           labels = ['Investment in reliability']))
+            
+        elif select == 1:
+            self.arl.get_comp_avail(gammas)
+            plot.setLayout(self.genPlot(xlabel = "Investment in reliability $\gamma_i$", 
+                        ylabel = "Availability", 
+                        title ="Impact of investment in reliability improvement\n on subsystem availability",
+                        gammas = gammas,
+                        y = self.arl.comp_avail))
+            table.setLayout(self.genTable(y =  self.arl.comp_avail,
+                                          gammas = gammas,
+                           labels = ['Investment in reliability']))
+        self.SLAtabs.clear()
+        self.SLAtabs.addTab(plot, "Plot")
+        self.SLAtabs.addTab(table, "Table")
+
+    def genFSTab(self):
+        """
+        Generates contents of 'Optimal subsystem investment to maximize fleet size' tab
+        """
+        self.FSTab = QWidget()
         layout = QVBoxLayout()
-        gammas = np.linspace(0, self.arl.ba, num = self.arl.intermediate)
-        resultTable = QTableWidget()
-        resultTable.setColumnCount(len(self.arl.componentIndices) + 1)
-        resultTable.setRowCount(len(gammas))
-        for i, gamma in enumerate(gammas):
-                g = QTableWidgetItem()
-                g.setText(str(int(gamma)))
-                resultTable.setItem(i, 0, g)
-        if index == 0:
-            labels = ['Investment in reliability']
-            for i, idx in enumerate(self.arl.componentIndices):
-                labels.append('Component {}'.format(idx))
-                lifecycle_costs = self.arl.lc_cost[i]
-                for j, cost in enumerate(lifecycle_costs):
-                    c = QTableWidgetItem()
-                    c.setText(str(cost))
-                    resultTable.setItem(j, i+1, c)
-            resultTable.setHorizontalHeaderLabels(labels)
-        elif index ==1:
-            labels = ['Investment in reliability']
-            for i, idx in enumerate(self.arl.componentIndices):
-                labels.append('Component {}'.format(idx))
-                comp_avail = self.arl.comp_avail[i]
-                for j, mu in enumerate(comp_avail):
-                    c = QTableWidgetItem()
-                    c.setText(str(mu))
-                    resultTable.setItem(j, i+1, c)
-            resultTable.setHorizontalHeaderLabels(labels)
-        elif index == 2:
-            labels = ['Investment in reliability']
-            for i, idx in enumerate(self.arl.componentIndices):
-                labels.append('Component {}'.format(idx))
-                marg_util = self.arl.marg_util[i]
-                for j, mu in enumerate(marg_util):
-                    c = QTableWidgetItem()
-                    c.setText(str(mu))
-                    resultTable.setItem(j, i+1, c)
-            resultTable.setHorizontalHeaderLabels(labels)
-        elif index == 3:    
-            labels = ['Investment in reliability', 'System Availability']
-            sys_avail = self.arl.sys_avail_list
-            for i, mu in enumerate(sys_avail):
-                c = QTableWidgetItem()
-                c.setText(str(mu))
-                resultTable.setItem(i, 1, c)
-            resultTable.setHorizontalHeaderLabels(labels)
-        elif index == 4:
-            labels = ['Investment in reliability', 'Fleet Size']
-            fleet_size = self.arl.opt_fleet_size
-            for i, mu in enumerate(fleet_size):
-                c = QTableWidgetItem()
-                c.setText(str(mu))
-                resultTable.setItem(i, 1, c)
-            resultTable.setHorizontalHeaderLabels(labels)
-        elif index == 5:
-            labels = ['System Availability', 'Fleet Size']
-            sys_avail = self.arl.sys_avail_list
-            fleet_size = self.arl.opt_fleet_size
-            for i, mu in enumerate(fleet_size):
-                c = QTableWidgetItem()
-                c.setText(str(mu))
-                resultTable.setItem(i, 1, c)
-                d = QTableWidgetItem()
-                d.setText(str(sys_avail[i]))
-                resultTable.setItem(i, 0, d)
-            resultTable.setHorizontalHeaderLabels(labels)
-        layout.addWidget(resultTable)
-        return layout
-    
-    def plotFig(self, index):
-        gammas = np.linspace(0, self.arl.ba, num = self.arl.intermediate)
-        #gammas = list(zip(*self.optimal_investment))
-        #print(gammas)
-        fig, ax1 = plt.subplots(1, 1)
-        #ax1 = fig.add_subplot(111)
+        self.FScomboBox = QComboBox()
+        self.FScomboBox.addItems(['Marginal Utility of Subsystems', 'System Availability'] )
+        self.FScomboBox.activated.connect(self.FSdata)
+        self.FStabs = QTabWidget()
+       
         
+        layout.addWidget(self.FScomboBox)
+        layout.addWidget(self.FStabs)
+        self.FSdata(0)
+        self.FSTab.setLayout(layout)
+        return self.FSTab
+    
+    def FSdata(self, select):
+        """
+        Handles 'Optimal subsystem investment to maximize fleet size' tab's dropdown menu
+        """
+        gammas = np.linspace(0, self.arl.ba, num = self.arl.intermediate)
+        plot = QWidget()
+        table = QWidget()
+        
+        if select == 0:
+            self.arl.get_marg_util(gammas)
+            plot.setLayout(self.genPlot(gammas = gammas,
+                                        y = self.arl.marg_util,
+                                        xlabel = "Investment in reliability $\gamma_i$", 
+                                        ylabel = "Fleet Size", 
+                                        title ="Marginal utility of subsystem reliability investment\n on fleet size"))
+            table.setLayout(self.genTable(y = self.arl.marg_util,
+                                          gammas = gammas,
+                                          labels = ['Investment in reliability']))
+        elif select ==1:
+            self.arl.get_sys_avail()
+            
+            plot.setLayout(self.genPlot(gammas = gammas,
+                                        y = self.arl.sys_avail_list,
+                                        xlabel = "Investment in reliability $\gamma_i$",
+                                        ylabel = "System Availability",
+                                        title = "Impact of optimal investment in reliability\n improvement on system availability",
+                                        components = False))
+            table.setLayout(self.genTable(gammas = gammas,
+                                          y = self.arl.sys_avail_list,
+                                          labels = ['Investment in reliability', 'System Availability'],
+                                          components = False))
+            
+        self.FStabs.clear()
+        self.FStabs.addTab(plot, "Plot")
+        self.FStabs.addTab(table, "Table")
+    
+    def genAVTab(self):
+        self.AVTab = QWidget()
+        layout = QVBoxLayout()
+        self.AVcomboBox = QComboBox()
+        self.AVcomboBox.addItems(['Investment in reliability vs. Fleet size', 'System availability vs. Fleet size'])
+        self.AVcomboBox.activated.connect(self.AVdata)
+        self.AVtabs = QTabWidget()
+        
+        layout.addWidget(self.AVcomboBox)
+        layout.addWidget(self.AVtabs)
+        self.AVdata(0)
+        self.AVTab.setLayout(layout)
+        return self.AVTab
+    
+    def AVdata(self, select):
+        """
+        Handles System avail tab's dropdown menu
+        """
+        gammas = np.linspace(0, self.arl.ba, num = self.arl.intermediate)
+        plot = QWidget()
+        table = QWidget()
+        
+        if select == 0:
+            self.arl.get_fleet_size()
+            plot.setLayout(self.genPlot(gammas = gammas,
+                                        y = self.arl.opt_fleet_size,
+                                        xlabel = "Investment in reliability $\gamma_i$",
+                                        ylabel = "Fleet Size",
+                                        title = "Impact of optimal investment in reliability\n improvement on fleet size",
+                                        components = False))
+            table.setLayout(self.genTable(gammas = gammas,
+                                          y = self.arl.opt_fleet_size,
+                                          labels = ['Investment in reliability', 'Fleet Size'],
+                                          components = False))
+        elif select == 1:
+            self.arl.get_sys_avail()
+            self.arl.get_fleet_size()
+            plot.setLayout(self.genPlot(gammas = self.arl.sys_avail_list,
+                                        y = self.arl.opt_fleet_size,
+                                        xlabel = "Fleet Size",
+                                        ylabel = "System Availability (A)",
+                                        title = "Optimal availability and fleet size for various investments",
+                                        components = False))
+            table.setLayout(self.genTable(gammas = self.arl.sys_avail_list,
+                                          y = self.arl.opt_fleet_size,
+                                          labels = ['System Availability', 'Fleet Size'],
+                                          components = False))
+
+
+        self.AVtabs.clear()
+        self.AVtabs.addTab(plot, "Plot")
+        self.AVtabs.addTab(table, "Table")
+    
+    
+    def genPlot(self, components= True, **kwargs):
+        fig, ax1 = plt.subplots(1, 1)
         plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
            ncol=2, mode="expand", borderaxespad=0.)
         
         canvas = FigureCanvas(fig)
         toolbar = NavigationToolbar(canvas, self)
-        
-        
-        if index == 0:
-            self.arl.get_lc_costs(gammas)
+        if components:
             for i, idx in enumerate(self.arl.componentIndices):
-                ax1.plot(gammas, self.arl.lc_cost[i], label="Component {}".format(idx+1))
-            ax1.set_xlabel("Investment in reliability $\gamma_i$")
-            ax1.set_ylabel("Subsystem Lifecycle Cost ($C_i$)")
-            ax1.set_title("Impact of investment in reliability improvement\n on subsystem lifecycle cost")
-        elif index == 1:
-            self.arl.get_comp_avail(gammas)
-            for i, idx in enumerate(self.arl.componentIndices):
-                ax1.plot(gammas, self.arl.comp_avail[i], label="Component {}".format(idx+1))
-            ax1.set_xlabel("Investment in reliability $\gamma_i$")
-            ax1.set_ylabel("Availability")
-            ax1.set_title("Impact of investment in reliability improvement\n on subsystem availability")
-        elif index == 2:
-            self.arl.get_marg_util(gammas)
-            for i, idx in enumerate(self.arl.componentIndices):
-                ax1.step(gammas, self.arl.marg_util[i], label="Component {}".format(idx+1))
-            ax1.set_xlabel("Investment in reliability $\gamma_i$")
-            ax1.set_ylabel("Fleet Size")
-            ax1.set_title("Marginal utility of subsystem reliability investment\n on fleet size")
-        elif index == 3:
-            self.arl.get_sys_avail()
-            plotline = self.arl.sys_avail_list
-            ax1.plot(gammas, plotline)
-            ax1.set_xlabel("Investment in reliability $\gamma_i$")
-            ax1.set_ylabel("System Availability")
-            ax1.set_title("Impact of optimal investment in reliability\n improvement on system availability")
-        elif index == 4:
-            self.arl.get_fleet_size()
-            plotline = self.arl.opt_fleet_size
-            ax1.plot(gammas, plotline)
-            ax1.set_xlabel("Investment in reliability $\gamma_i$")
-            ax1.set_ylabel("Fleet Size")
-            ax1.set_title("Impact of optimal investment in reliability\n improvement on fleet size")
-        elif index == 5:
-            self.arl.get_sys_avail()
-            self.arl.get_fleet_size()
-            ax1.plot(self.arl.sys_avail_list, self.arl.opt_fleet_size)
-            ax1.set_xlabel("Fleet Size")
-            ax1.set_ylabel("System Availability (A)")
-            ax1.set_title("Optimal availability and fleet size for various investments")
-        
+                ax1.step(kwargs['gammas'], kwargs['y'][i], label="Component {}".format(idx+1))
+        else:
+            ax1.step(kwargs['gammas'], kwargs['y'])
+            
+        ax1.set_xlabel(kwargs['xlabel'])
+        ax1.set_ylabel(kwargs['ylabel'])
+        ax1.set_title(kwargs['title']) 
         ax1.legend()
         canvas.draw()
         layoutfig = QVBoxLayout()
@@ -421,4 +447,38 @@ class MainWindow(QMainWindow):
         layoutfig.addWidget(canvas, 1)
         plt.tight_layout()
         return layoutfig
+    
+    def genTable(self,components= True, **kwargs):
+        labels = kwargs['labels']
+        gammas = kwargs['gammas']
+        layout = QVBoxLayout()
+        resultTable = QTableWidget()
         
+        resultTable.setRowCount(len(gammas))
+        
+        if components:
+            resultTable.setColumnCount(len(self.arl.componentIndices) + 1)
+            for i, idx in enumerate(self.arl.componentIndices):
+                labels.append('Component {}'.format(idx))
+                lifecycle_costs = kwargs['y'][i]
+                for j, cost in enumerate(lifecycle_costs):
+                    c = QTableWidgetItem()
+                    c.setText(str(cost))
+                    resultTable.setItem(j, i+1, c)
+        else:
+            resultTable.setColumnCount(2)
+            data = kwargs['y']
+            for j, cost in enumerate(data):
+                c = QTableWidgetItem()
+                c.setText(str(cost))
+                resultTable.setItem(j, 1, c)
+        
+        
+        for i, gamma in enumerate(gammas):
+                g = QTableWidgetItem()
+                g.setText(str(int(gamma)))
+                resultTable.setItem(i, 0, g)
+        
+        resultTable.setHorizontalHeaderLabels(labels)
+        layout.addWidget(resultTable)
+        return layout
