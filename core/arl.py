@@ -2,7 +2,7 @@ import pandas as pd
 import math
 import numpy as np
 from scipy.special import lambertw
-from scipy.optimize import minimize, brute
+from scipy.optimize import minimize, brute, differential_evolution
 import matplotlib.pyplot as plt
 
 
@@ -101,9 +101,15 @@ class ARL:
     
     def maximize_n_gamma(self):
         cons = ({'type': 'ineq', 'fun': self.constraint})
-        bnds = ((0, None), (0, None))
-        result = minimize(self.n_gamma, (self.ba/8,self.ba/8), method='SLSQP', constraints = cons, args=(-1.0,), options={'disp':True}, bounds=bnds)
+        bnds = [(0, self.ba) for i in range(len(self.componentIndices))]
+        print(bnds)
+        #result = minimize(self.n_gamma, (self.ba/8,self.ba/8), method='SLSQP', constraints = cons, args=(-1.0,), options={'disp':True}, bounds=bnds)
         #result = brute(self.n_gamma, ((0, self.ba), (0, self.ba)), args=(-1.0,), disp=True)
+        while True:
+            result = differential_evolution(self.n_gamma, bnds, maxiter=10000, args=(-1.0,), tol = 0.001)
+            
+            if sum(result.x) < self.ba:
+                break
         return result
     
     
@@ -126,6 +132,8 @@ class ARL:
             self.eta_.append(self.n_gamma(result))
         return self.results
     
+    
+    #Functions for plotting in ARL tool
     def get_lc_costs(self, gammas):
         plotline = []
         for i, idx in enumerate(self.componentIndices):
@@ -173,44 +181,25 @@ if __name__ == '__main__':
     df = pd.read_excel('../sample.xlsx')
     comp = [0, 1]
     a = ARL(df, comp)
-    print(a.n_gamma([a.ba/2,a.ba/2]))
-    print(a.maximize_n_gamma().x)
-    #print(a.mysticCompute())
-    #print(a.eta_)
-    
-    """
-    plot = []
-    x_axis = [i for i in range(0, 10000000, 10000000/50)]
-    for i in x_axis:
-        gammaVec = [0, i]
-        plot.append(a.n_gamma(gammaVec))
-    
-    plt.step(x_axis, plot)
-    
-    plot = []
-    for i in x_axis:
-        gammaVec = [i, 0]
-        plot.append(a.n_gamma(gammaVec))
-    plt.step(x_axis, plot)
-    plt.show()
-        
+    res = a.maximize_n_gamma()
+    print(res)
+    print(a.n_gamma(res.x))
+    uc = a.unit_cost(res.x)
+    print('Unit cost : {}'.format(uc))
+    fc = uc * res.fun * -1.0
+    print('Fleet cost: {}'.format(fc))
+    print('Component data :')
+    C = []
+    P = []
+    M = []
+    for i, idx in enumerate(a.componentIndices):
+            C.append(a.lifecycle_cost(idx, res.x[i]))
+            P.append(a.rep_parts(idx, res.x[i]))
+            M.append(a.mttf(idx, res.x[i]))
+    print(C)
+    print(P)
+    print(M)
     
     
-    
-    gammaVec = [53100000, 44800000]
-    #gammaVec = [2000000, 2000000]
-    
-    #print(a.maximize_n_gamma())
-    print(a.n_gamma(gammaVec))
-    print(a.unit_cost(gammaVec))
-    print(a.lifecycle_cost(0, gammaVec[0]))
-    print(a.rep_parts(0, gammaVec[0]))
-    print(a.mttf(0, gammaVec[0]))
-    
-    print(a.mttf(0, 0))
-    idx = 0
-    gamma_i = 0
-    print(lambertw((1.0*a.c0[idx])/a.mub[idx]))
-    """
     
                         

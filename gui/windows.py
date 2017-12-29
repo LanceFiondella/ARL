@@ -222,7 +222,7 @@ class MainWindow(QMainWindow):
             #arl.ba = int(float(self.baText.text()))
             #arl.eps = 0.001
             self.optimal_investment = self.arl.mysticCompute()
-            
+            self.max_fleet = self.arl.maximize_n_gamma()
             self.showResultWindow()
             self.buttonCompute.setText('Compute')
             
@@ -232,17 +232,9 @@ class MainWindow(QMainWindow):
         self.resultDialog = ResultWindow(self.arl)
         self.resultDialog.show()
     
-
-    
-    
-    
-   
- 
- 
- 
 class ResultWindow(QDialog):
     """
-    Defines the Results window
+    Defines the Results window for results from Paper 2
     """
     def __init__(self, arl):
         super(ResultWindow, self).__init__()
@@ -260,7 +252,7 @@ class ResultWindow(QDialog):
         self.tabs.addTab(self.genSLATab(), 'Subsystem Level Assessment')
         self.tabs.addTab(self.genFSTab(), 'Optimal subsystem investment to maximize fleet size')
         self.tabs.addTab(self.genAVTab(), 'Optimal subsystem investment to maximize availability')
-        
+        #self.tabs.addTab(self.gen
         return self.tabs
     
     def genSLATab(self):
@@ -270,7 +262,7 @@ class ResultWindow(QDialog):
         self.SLATab = QWidget()
         self.SLAlayout = QVBoxLayout(self.SLATab)
         self.SLAcomboBox = QComboBox()
-        self.SLAcomboBox.addItems(['Impact of investment', 'Availability'])
+        self.SLAcomboBox.addItems(['Impact of investment', 'Availability', 'Marginal Utility of Subsystems'])
         
         self.SLAcomboBox.activated.connect(self.SLAdata)
         self.SLAtabs = QTabWidget()
@@ -312,6 +304,16 @@ class ResultWindow(QDialog):
             table.setLayout(self.genTable(y =  self.arl.comp_avail,
                                           gammas = gammas,
                            labels = ['Investment in reliability']))
+        elif select == 2:
+            self.arl.get_marg_util(gammas)
+            plot.setLayout(self.genPlot(gammas = gammas,
+                                        y = self.arl.marg_util,
+                                        xlabel = "Investment in reliability $\gamma_i$", 
+                                        ylabel = "Fleet Size", 
+                                        title ="Marginal utility of subsystem reliability investment\n on fleet size"))
+            table.setLayout(self.genTable(y = self.arl.marg_util,
+                                          gammas = gammas,
+                                          labels = ['Investment in reliability']))
         self.SLAtabs.clear()
         self.SLAtabs.addTab(plot, "Plot")
         self.SLAtabs.addTab(table, "Table")
@@ -323,11 +325,9 @@ class ResultWindow(QDialog):
         self.FSTab = QWidget()
         layout = QVBoxLayout()
         self.FScomboBox = QComboBox()
-        self.FScomboBox.addItems(['Marginal Utility of Subsystems', 'System Availability'] )
+        self.FScomboBox.addItems(['Outcomes under various scenarios'] )
         self.FScomboBox.activated.connect(self.FSdata)
         self.FStabs = QTabWidget()
-       
-        
         layout.addWidget(self.FScomboBox)
         layout.addWidget(self.FStabs)
         self.FSdata(0)
@@ -339,42 +339,19 @@ class ResultWindow(QDialog):
         Handles 'Optimal subsystem investment to maximize fleet size' tab's dropdown menu
         """
         gammas = np.linspace(0, self.arl.ba, num = self.arl.intermediate)
-        plot = QWidget()
-        table = QWidget()
-        
-        if select == 0:
-            self.arl.get_marg_util(gammas)
-            plot.setLayout(self.genPlot(gammas = gammas,
-                                        y = self.arl.marg_util,
-                                        xlabel = "Investment in reliability $\gamma_i$", 
-                                        ylabel = "Fleet Size", 
-                                        title ="Marginal utility of subsystem reliability investment\n on fleet size"))
-            table.setLayout(self.genTable(y = self.arl.marg_util,
-                                          gammas = gammas,
-                                          labels = ['Investment in reliability']))
-        elif select ==1:
-            self.arl.get_sys_avail()
-            
-            plot.setLayout(self.genPlot(gammas = gammas,
-                                        y = self.arl.sys_avail_list,
-                                        xlabel = "Investment in reliability $\gamma_i$",
-                                        ylabel = "System Availability",
-                                        title = "Impact of optimal investment in reliability\n improvement on system availability",
-                                        components = False))
-            table.setLayout(self.genTable(gammas = gammas,
-                                          y = self.arl.sys_avail_list,
-                                          labels = ['Investment in reliability', 'System Availability'],
-                                          components = False))
-            
+        table = QTableWidget()
+                
+        if select ==0:
+            table = self.genTab2Table()
+            table = self.populateTab2Table(table)
         self.FStabs.clear()
-        self.FStabs.addTab(plot, "Plot")
         self.FStabs.addTab(table, "Table")
     
     def genAVTab(self):
         self.AVTab = QWidget()
         layout = QVBoxLayout()
         self.AVcomboBox = QComboBox()
-        self.AVcomboBox.addItems(['Investment in reliability vs. Fleet size', 'System availability vs. Fleet size'])
+        self.AVcomboBox.addItems(['Investment in reliability vs. Fleet size','Investment in reliability vs. System Availability',  'System availability vs. Fleet size', ])
         self.AVcomboBox.activated.connect(self.AVdata)
         self.AVtabs = QTabWidget()
         
@@ -404,7 +381,22 @@ class ResultWindow(QDialog):
                                           y = self.arl.opt_fleet_size,
                                           labels = ['Investment in reliability', 'Fleet Size'],
                                           components = False))
+        
         elif select == 1:
+            self.arl.get_sys_avail()
+            plot.setLayout(self.genPlot(gammas = gammas,
+                                        y = self.arl.sys_avail_list,
+                                        xlabel = "Investment in reliability $\gamma_i$",
+                                        ylabel = "System Availability",
+                                        title = "Impact of optimal investment in reliability\n improvement on system availability",
+                                        components = False))
+            table.setLayout(self.genTable(gammas = gammas,
+                                          y = self.arl.sys_avail_list,
+                                          labels = ['Investment in reliability', 'System Availability'],
+                                          components = False))
+
+        
+        elif select == 2:
             self.arl.get_sys_avail()
             self.arl.get_fleet_size()
             plot.setLayout(self.genPlot(gammas = self.arl.sys_avail_list,
@@ -417,8 +409,7 @@ class ResultWindow(QDialog):
                                           y = self.arl.opt_fleet_size,
                                           labels = ['System Availability', 'Fleet Size'],
                                           components = False))
-
-
+        
         self.AVtabs.clear()
         self.AVtabs.addTab(plot, "Plot")
         self.AVtabs.addTab(table, "Table")
@@ -480,5 +471,66 @@ class ResultWindow(QDialog):
                 resultTable.setItem(i, 0, g)
         
         resultTable.setHorizontalHeaderLabels(labels)
+        resultTable.horizontalHeader().setSectionResizeMode(3)
         layout.addWidget(resultTable)
         return layout
+    
+    def genTab2Table(self):
+        table = QWidget()
+        table.setColumnCount(6)
+        table.setRowCount(4+len(self.arl.componentIndices))
+        table.setSpan(0,0,1,3)
+        table.setSpan(0,3,1,3)
+        table.setSpan(1,0,1,3)
+        table.setSpan(1,3,1,3)
+        table.setSpan(2,0,1,3)
+        table.setSpan(2,3,1,3)
+        table.horizontalHeader().setSectionResizeMode(1)
+        table.setHorizontalHeaderLabels(['','No Investment','','','Optimal Investment',''])
+        c = QTableWidgetItem()
+        c.setTextAlignment(Qt.AlignCenter)
+        c.setText('C')
+        table.setItem(3, 0, c)
+        c = QTableWidgetItem()
+        c.setTextAlignment(Qt.AlignCenter)
+        c.setText('C')
+        table.setItem(3, 3, c)
+        p = QTableWidgetItem()
+        p.setTextAlignment(Qt.AlignCenter)
+        p.setText('P')
+        table.setItem(3, 1, p)
+        p = QTableWidgetItem()
+        p.setTextAlignment(Qt.AlignCenter)
+        p.setText('P')
+        table.setItem(3, 4, p)
+        m = QTableWidgetItem()
+        m.setTextAlignment(Qt.AlignCenter)
+        m.setText('M')
+        table.setItem(3, 2, m)
+        m = QTableWidgetItem()
+        m.setTextAlignment(Qt.AlignCenter)
+        m.setText('M')
+        table.setItem(3, 5, m)
+        
+        table.setVerticalHeaderLabels([u'\u03B3','Fleet Cost', 'Unit Cost', ''] + ['Component {}'.format(i) for i in range(len(self.arl.componentIndices))])
+        return table
+    
+    def populateTab2Table(self, table):
+        #Calculations for optimal investment
+        C = []
+        P = []
+        M = []
+        for i, idx in enumerate(a.componentIndices):
+                C.append(a.lifecycle_cost(idx, res.x[i]))
+                P.append(a.rep_parts(idx, res.x[i]))
+                M.append(a.mttf(idx, res.x[i]))
+        n_gamma = self.max_fleet.fun
+        unit_cost = self.arl.unit_cost(self.max_fleet.x)
+        fleet_cost = unit_cost * self.max_fleet.fun * -1.0
+        #Populate Optimal investment
+        gOpt = QTableWidgetItem()
+        gOpt.setText(n_gamma)
+        table.setItem(0, 2, gOpt)
+        ucOpt = QTableWidgetItem()
+        ucOpt.setText(unit_cost)
+        
