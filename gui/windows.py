@@ -229,16 +229,18 @@ class MainWindow(QMainWindow):
     
     def showResultWindow(self):
         
-        self.resultDialog = ResultWindow(self.arl)
+        self.resultDialog = ResultWindow(self.arl, self.optimal_investment, self.max_fleet)
         self.resultDialog.show()
     
 class ResultWindow(QDialog):
     """
     Defines the Results window for results from Paper 2
     """
-    def __init__(self, arl):
+    def __init__(self, arl, opt_inv, max_fleet):
         super(ResultWindow, self).__init__()
         self.arl = arl
+        self.optimal_investment = opt_inv
+        self.max_fleet = max_fleet
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.genTabs())
         self.setLayout(self.layout)
@@ -476,7 +478,7 @@ class ResultWindow(QDialog):
         return layout
     
     def genTab2Table(self):
-        table = QWidget()
+        table = QTableWidget()
         table.setColumnCount(6)
         table.setRowCount(4+len(self.arl.componentIndices))
         table.setSpan(0,0,1,3)
@@ -517,20 +519,66 @@ class ResultWindow(QDialog):
     
     def populateTab2Table(self, table):
         #Calculations for optimal investment
-        C = []
-        P = []
-        M = []
-        for i, idx in enumerate(a.componentIndices):
-                C.append(a.lifecycle_cost(idx, res.x[i]))
-                P.append(a.rep_parts(idx, res.x[i]))
-                M.append(a.mttf(idx, res.x[i]))
+        for i, idx in enumerate(self.arl.componentIndices):
+            C = QTableWidgetItem()
+            C.setText(str(self.arl.lifecycle_cost(idx, self.max_fleet.x[i])))
+            table.setItem(idx+4, 3, C)
+            
+            P = QTableWidgetItem()
+            P.setText(str(self.arl.rep_parts(idx, self.max_fleet.x[i])))
+            table.setItem(idx+4, 4, P)
+            
+            M = QTableWidgetItem()
+            M.setText(str(self.arl.mttf(idx, self.max_fleet.x[i])))
+            table.setItem(idx+4, 5, M)
+            
         n_gamma = self.max_fleet.fun
         unit_cost = self.arl.unit_cost(self.max_fleet.x)
         fleet_cost = unit_cost * self.max_fleet.fun * -1.0
+        
         #Populate Optimal investment
         gOpt = QTableWidgetItem()
-        gOpt.setText(n_gamma)
-        table.setItem(0, 2, gOpt)
+        gOpt.setText(str(abs(n_gamma)))
+        table.setItem(0, 3, gOpt)
+        fcOpt = QTableWidgetItem()
+        fcOpt.setText(str(fleet_cost))
+        table.setItem(1, 3, fcOpt)
         ucOpt = QTableWidgetItem()
-        ucOpt.setText(unit_cost)
+        ucOpt.setText(str(unit_cost))
+        table.setItem(2, 3, ucOpt)
+        
+        #Calculations for No investment
+        
+        gammas = [0 for i in range(len(self.arl.componentIndices))]
+        n_gamma_no = self.arl.n_gamma(gammas)
+        unit_cost_no = self.arl.unit_cost(gammas)
+        fleet_cost_no = unit_cost_no * n_gamma_no
+        for i, idx in enumerate(self.arl.componentIndices):
+            CNo = QTableWidgetItem()
+            CNo.setText(str(self.arl.lifecycle_cost(idx, 0)))
+            table.setItem(idx+4, 0, CNo)
+            
+            PNo = QTableWidgetItem()
+            PNo.setText(str(self.arl.rep_parts(idx, 0)))
+            table.setItem(idx+4, 1, PNo)
+            
+            MNo = QTableWidgetItem()
+            MNo.setText(str(self.arl.mttf(idx, 0)))
+            table.setItem(idx+4, 2, MNo)
+                       
+        
+        #Populate No investment
+        gNo = QTableWidgetItem()
+        gNo.setText(str(n_gamma_no))
+        table.setItem(0, 0, gNo)
+        fcNo = QTableWidgetItem()
+        fcNo.setText(str(fleet_cost_no))
+        table.setItem(1, 0, fcNo)
+        ucNo = QTableWidgetItem()
+        ucNo.setText(str(unit_cost_no))
+        table.setItem(2, 0, ucNo)
+        
+        
+        
+        return table
         
