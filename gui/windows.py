@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QAction, qApp, QFileDialog, QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from core.arl import ARL
@@ -479,16 +479,16 @@ class ResultWindow(QDialog):
     
     def genTab2Table(self):
         table = QTableWidget()
-        table.setColumnCount(6)
+        table.setColumnCount(8)
         table.setRowCount(4+len(self.arl.componentIndices))
-        table.setSpan(0,0,1,3)
-        table.setSpan(0,3,1,3)
-        table.setSpan(1,0,1,3)
-        table.setSpan(1,3,1,3)
-        table.setSpan(2,0,1,3)
-        table.setSpan(2,3,1,3)
+        table.setSpan(0,0,1,4)
+        table.setSpan(0,4,1,4)
+        table.setSpan(1,0,1,4)
+        table.setSpan(1,4,1,4)
+        table.setSpan(2,0,1,4)
+        table.setSpan(2,4,1,4)
         table.horizontalHeader().setSectionResizeMode(1)
-        table.setHorizontalHeaderLabels(['','No Investment','','','Optimal Investment',''])
+        table.setHorizontalHeaderLabels(['','','No Investment','','','Optimal Investment','',''])
         c = QTableWidgetItem()
         c.setTextAlignment(Qt.AlignCenter)
         c.setText('C')
@@ -496,7 +496,7 @@ class ResultWindow(QDialog):
         c = QTableWidgetItem()
         c.setTextAlignment(Qt.AlignCenter)
         c.setText('C')
-        table.setItem(3, 3, c)
+        table.setItem(3, 4, c)
         p = QTableWidgetItem()
         p.setTextAlignment(Qt.AlignCenter)
         p.setText('P')
@@ -504,7 +504,7 @@ class ResultWindow(QDialog):
         p = QTableWidgetItem()
         p.setTextAlignment(Qt.AlignCenter)
         p.setText('P')
-        table.setItem(3, 4, p)
+        table.setItem(3, 5, p)
         m = QTableWidgetItem()
         m.setTextAlignment(Qt.AlignCenter)
         m.setText('M')
@@ -512,40 +512,56 @@ class ResultWindow(QDialog):
         m = QTableWidgetItem()
         m.setTextAlignment(Qt.AlignCenter)
         m.setText('M')
-        table.setItem(3, 5, m)
+        table.setItem(3, 6, m)
+
+        gamma = QTableWidgetItem()
+        gamma.setTextAlignment(Qt.AlignCenter)
+        gamma.setText(u'\u03B3')
+        table.setItem(3, 3, gamma)
+        gamma = QTableWidgetItem()
+        gamma.setTextAlignment(Qt.AlignCenter)
+        gamma.setText(u'\u03B3')
+        table.setItem(3, 7, gamma)
+
         
         table.setVerticalHeaderLabels([u'\u03B3','Fleet Cost', 'Unit Cost', ''] + ['Component {}'.format(i) for i in range(len(self.arl.componentIndices))])
         return table
     
     def populateTab2Table(self, table):
         #Calculations for optimal investment
-        for i, idx in enumerate(self.arl.componentIndices):
-            C = QTableWidgetItem()
-            C.setText(str(self.arl.lifecycle_cost(idx, self.max_fleet.x[i])))
-            table.setItem(idx+4, 3, C)
-            
-            P = QTableWidgetItem()
-            P.setText(str(self.arl.rep_parts(idx, self.max_fleet.x[i])))
-            table.setItem(idx+4, 4, P)
-            
-            M = QTableWidgetItem()
-            M.setText(str(self.arl.mttf(idx, self.max_fleet.x[i])))
-            table.setItem(idx+4, 5, M)
-            
         n_gamma = self.max_fleet.fun
         unit_cost = self.arl.unit_cost(self.max_fleet.x)
         fleet_cost = unit_cost * self.max_fleet.fun * -1.0
+
+        for i, idx in enumerate(self.arl.componentIndices):
+            C = QTableWidgetItem()
+            C.setText(str(self.arl.lifecycle_cost(idx, self.max_fleet.x[i])))
+            table.setItem(idx+4, 4, C)
+            
+            P = QTableWidgetItem()
+            P.setText(str(self.arl.rep_parts(idx, self.max_fleet.x[i])))
+            table.setItem(idx+4, 5, P)
+            
+            M = QTableWidgetItem()
+            M.setText(str(self.arl.mttf(idx, self.max_fleet.x[i])))
+            table.setItem(idx+4, 6, M)
+
+            gamma = QTableWidgetItem()
+            gamma.setText(str(self.max_fleet.x[idx]))
+            table.setItem(idx+4, 7, gamma)
+            
+        
         
         #Populate Optimal investment
         gOpt = QTableWidgetItem()
         gOpt.setText(str(abs(n_gamma)))
-        table.setItem(0, 3, gOpt)
+        table.setItem(0, 4, gOpt)
         fcOpt = QTableWidgetItem()
         fcOpt.setText(str(fleet_cost))
-        table.setItem(1, 3, fcOpt)
+        table.setItem(1, 4, fcOpt)
         ucOpt = QTableWidgetItem()
         ucOpt.setText(str(unit_cost))
-        table.setItem(2, 3, ucOpt)
+        table.setItem(2, 4, ucOpt)
         
         #Calculations for No investment
         
@@ -565,6 +581,10 @@ class ResultWindow(QDialog):
             MNo = QTableWidgetItem()
             MNo.setText(str(self.arl.mttf(idx, 0)))
             table.setItem(idx+4, 2, MNo)
+
+            gamma = QTableWidgetItem()
+            gamma.setText('0')
+            table.setItem(idx+4, 3, gamma)
                        
         
         #Populate No investment
