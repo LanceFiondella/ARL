@@ -199,7 +199,7 @@ class reliFleet_graph(CanvasTemplate):
         self.axes.plot(arl.budget_,
                        arl.eta_)
         self.axes.set_xlabel('Investment in reliability')
-        self.axes.set_ylabel('Fleet Size')
+        self.axes.set_ylabel('Fleet size')
         # self.draw()
 
 class reliAvail_graph(CanvasTemplate):
@@ -209,7 +209,7 @@ class reliAvail_graph(CanvasTemplate):
         self.axes.plot(arl.budget_,
                        arl.avail_)
         self.axes.set_xlabel('Investment in reliability')
-        self.axes.set_ylabel('System Availability (A)')
+        self.axes.set_ylabel('System availability')
         # self.draw()
 
 class availFleet_graph(CanvasTemplate):
@@ -218,8 +218,8 @@ class availFleet_graph(CanvasTemplate):
 
         self.axes.plot(arl.avail_,
                        arl.eta_)
-        self.axes.set_xlabel('System Availability (A)')
-        self.axes.set_ylabel('Fleet Size')
+        self.axes.set_xlabel('System availability')
+        self.axes.set_ylabel('Fleet size')
         # self.draw()
 
 
