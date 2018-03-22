@@ -175,7 +175,7 @@ class MainWindow(QMainWindow):
         self.budgetText = QLineEdit('100000')
         layout.addWidget(self.budgetText, 0, 1)
         
-        layout.addWidget(QLabel('Subsystem reliability investment (<budget)'), 1, 0)
+        layout.addWidget(QLabel('component reliability investment (<budget)'), 1, 0)
         self.baText = QLineEdit('1000')
         layout.addWidget(self.baText, 1, 1)
         
@@ -202,7 +202,10 @@ class MainWindow(QMainWindow):
         dataTable.setRowCount(7)
         dataTable.setColumnCount(2)
         
-        dataTable.setVerticalHeaderLabels(['Subsystem replacement cost','A-Mode failure rate', 'B-Mode failure rate', 'Operating cost', 'Cost increment due to corrective action', 'Fraction of B-mode failures removed', 'Mean time to repair'])
+        dataTable.setVerticalHeaderLabels(['component replacement cost','A-Mode failure rate', 
+                                        'B-Mode failure rate', 'Operating cost', 
+                                        'Cost increment due to corrective action', 
+                                        'Fraction of B-mode failures removed', 'Mean time to repair'])
         #(c1),  (Ma), (Mb),  (c0), B-Mode Failure Rate (\u03BC b), B-Mode Fixed-effectiveness factor (\u03BC d), (MTTRi)
         return dataTable
     
@@ -251,20 +254,21 @@ class ResultWindow(QDialog):
         Generates top level tabs
         """
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.genSLATab(), 'Subsystem Level Assessment')
-        self.tabs.addTab(self.genFSTab(), 'Fleet size optimization')#Optimal subsystem investment to maximize fleet size
-        self.tabs.addTab(self.genAVTab(), 'Availability optimization')#Optimal subsystem investment to maximize availability
+        self.tabs.addTab(self.genSLATab(), 'component Level Assessment')
+        self.tabs.addTab(self.genFSTab(), 'Fleet size optimization')#Optimal component investment to maximize fleet size
+        self.tabs.addTab(self.genAVTab(), 'Availability optimization')#Optimal component investment to maximize availability
         #self.tabs.addTab(self.gen
         return self.tabs
     
     def genSLATab(self):
         """
-        Generates contents of Subsystem Level Assessment tab
+        Generates contents of component Level Assessment tab
         """
         self.SLATab = QWidget()
         self.SLAlayout = QVBoxLayout(self.SLATab)
         self.SLAcomboBox = QComboBox()
-        self.SLAcomboBox.addItems(['Impact of reliability investment on lifecycle cost', 'Impact of reliability investment on availability', 'Marginal utility of reliability investments'])#'Impact of investment', 'Availability', 'Marginal Utility of Subsystems'
+        self.SLAcomboBox.addItems(['Impact of reliability investment on lifecycle cost', 'Impact of reliability investment on availability', 
+                                    'Marginal utility of reliability investments'])#'Impact of investment', 'Availability', 'Marginal Utility of components'
         
         self.SLAcomboBox.activated.connect(self.SLAdata)
         self.SLAtabs = QTabWidget()
@@ -278,7 +282,7 @@ class ResultWindow(QDialog):
     
     def SLAdata(self, select):
         """
-        Handles the Subsystem Level Assessment tab's drop down menu
+        Handles the component Level Assessment tab's drop down menu
         """
         gammas = np.linspace(0, self.arl.ba, num = self.arl.intermediate)
         plot = QWidget()
@@ -288,8 +292,8 @@ class ResultWindow(QDialog):
         if select == 0:
             self.arl.get_lc_costs(gammas)
             plot.setLayout(self.genPlot(xlabel = "Investment in reliability", 
-                         ylabel = "Subsystem lifecycle cost", 
-                         title ="Impact of investment in reliability improvement\n on subsystem lifecycle cost",
+                         ylabel = "component lifecycle cost", 
+                         title ="Impact of investment in reliability improvement\n on component lifecycle cost",
                          gammas = gammas,
                          y = self.arl.lc_cost))
             table.setLayout(self.genTable(y =  self.arl.lc_cost,
@@ -299,8 +303,8 @@ class ResultWindow(QDialog):
         elif select == 1:
             self.arl.get_comp_avail(gammas)
             plot.setLayout(self.genPlot(xlabel = "Investment in reliability", 
-                        ylabel = "Subsystem availability", 
-                        title ="Impact of investment in reliability improvement\n on subsystem availability",
+                        ylabel = "component availability", 
+                        title ="Impact of investment in reliability improvement\n on component availability",
                         gammas = gammas,
                         y = self.arl.comp_avail))
             table.setLayout(self.genTable(y =  self.arl.comp_avail,
@@ -312,7 +316,7 @@ class ResultWindow(QDialog):
                                         y = self.arl.marg_util,
                                         xlabel = "Investment in reliability", 
                                         ylabel = "Fleet size", 
-                                        title ="Marginal utility of subsystem reliability investment\n on fleet size"))
+                                        title ="Marginal utility of component reliability investment\n on fleet size"))
             table.setLayout(self.genTable(y = self.arl.marg_util,
                                           gammas = gammas,
                                           labels = ['Investment in reliability']))
@@ -322,7 +326,7 @@ class ResultWindow(QDialog):
 
     def genFSTab(self):
         """
-        Generates contents of 'Optimal subsystem investment to maximize fleet size' tab
+        Generates contents of 'Optimal component investment to maximize fleet size' tab
         """
         self.FSTab = QWidget()
         layout = QVBoxLayout()
@@ -338,7 +342,7 @@ class ResultWindow(QDialog):
     
     def FSdata(self, select):
         """
-        Handles 'Optimal subsystem investment to maximize fleet size' tab's dropdown menu
+        Handles 'Optimal component investment to maximize fleet size' tab's dropdown menu
         """
         gammas = np.linspace(0, self.arl.ba, num = self.arl.intermediate)
         table = QTableWidget()
@@ -353,7 +357,9 @@ class ResultWindow(QDialog):
         self.AVTab = QWidget()
         layout = QVBoxLayout()
         self.AVcomboBox = QComboBox()
-        self.AVcomboBox.addItems(['Impact of optimal investment in reliability on fleet size','Impact of optimal investment in reliability on system availability',  'Tradeoff between availability and fleet size', ])
+        self.AVcomboBox.addItems(['Impact of optimal investment in reliability on fleet size',
+                                'Impact of optimal investment in reliability on system availability',  
+                                'Tradeoff between availability and fleet size', ])
         self.AVcomboBox.activated.connect(self.AVdata)
         self.AVtabs = QTabWidget()
         
@@ -452,7 +458,7 @@ class ResultWindow(QDialog):
         if components:
             resultTable.setColumnCount(len(self.arl.componentIndices) + 1)
             for i, idx in enumerate(self.arl.componentIndices):
-                labels.append('Component {}'.format(idx))
+                labels.append('Component {}'.format(idx+1))
                 lifecycle_costs = kwargs['y'][i]
                 for j, cost in enumerate(lifecycle_costs):
                     c = QTableWidgetItem()
@@ -469,7 +475,7 @@ class ResultWindow(QDialog):
         
         for i, gamma in enumerate(gammas):
                 g = QTableWidgetItem()
-                g.setText(str(int(gamma)))
+                g.setText("{0:.6f}".format(gamma))
                 resultTable.setItem(i, 0, g)
         
         resultTable.setHorizontalHeaderLabels(labels)
@@ -524,7 +530,8 @@ class ResultWindow(QDialog):
         table.setItem(3, 7, gamma)
 
         
-        table.setVerticalHeaderLabels(['Fleet size','Fleet Cost', 'Unit Cost', ''] + ['Component {}'.format(i) for i in range(len(self.arl.componentIndices))])
+        table.setVerticalHeaderLabels(['Fleet size','Fleet Cost', 'Unit Cost', ''] + 
+                                    ['Component {}'.format(i+1) for i in range(len(self.arl.componentIndices))])
         return table
     
     def populateTab2Table(self, table):
