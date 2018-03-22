@@ -183,7 +183,7 @@ class MainWindow(QMainWindow):
         self.LText = QLineEdit('')
         layout.addWidget(self.LText, 2, 1)
         
-        layout.addWidget(QLabel('C<sub>vi</sub>'), 3, 0)
+        layout.addWidget(QLabel('Co-efficient of variation'), 3, 0)
         self.cviText = QLineEdit('')
         layout.addWidget(self.cviText, 3, 1)
         
