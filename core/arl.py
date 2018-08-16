@@ -106,7 +106,7 @@ class ARL:
         #result = minimize(self.n_gamma, (self.ba/8,self.ba/8), method='SLSQP', constraints = cons, args=(-1.0,), options={'disp':True}, bounds=bnds)
         #result = brute(self.n_gamma, ((0, self.ba), (0, self.ba)), args=(-1.0,), disp=True)
         while True:
-            result = differential_evolution(self.n_gamma, bnds, maxiter=10000, args=(-1.0,), tol = 0.001)
+            result = differential_evolution(self.n_gamma, bnds, maxiter=1000, args=(-1.0,), tol = 0.01)
             
             if sum(result.x) < self.ba:
                 break

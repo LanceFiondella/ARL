@@ -225,7 +225,9 @@ class MainWindow(QMainWindow):
             #arl.ba = int(float(self.baText.text()))
             #arl.eps = 0.001
             self.optimal_investment = self.arl.mysticCompute()
+            print("Finished Mystic, maximixing n gamma...")
             self.max_fleet = self.arl.maximize_n_gamma()
+            print("Finished maximizing. Showing results...")
             self.showResultWindow()
             self.buttonCompute.setText('Compute')
             
@@ -531,7 +533,7 @@ class ResultWindow(QDialog):
 
         
         table.setVerticalHeaderLabels(['Fleet size','Fleet Cost', 'Unit Cost', ''] + 
-                                    ['Component {}'.format(i+1) for i in range(len(self.arl.componentIndices))])
+                                    ['Component {}'.format(i+1) for i in self.arl.componentIndices])
         return table
     
     def populateTab2Table(self, table):
@@ -540,22 +542,25 @@ class ResultWindow(QDialog):
         unit_cost = self.arl.unit_cost(self.max_fleet.x)
         fleet_cost = unit_cost * self.max_fleet.fun * -1.0
 
+        print("Gamma Value: {}".format(self.max_fleet.x))
+        print("ARL components: {}".format(self.arl.componentIndices))
+
         for i, idx in enumerate(self.arl.componentIndices):
             C = QTableWidgetItem()
             C.setText(str(self.arl.lifecycle_cost(idx, self.max_fleet.x[i])))
-            table.setItem(idx+4, 4, C)
+            table.setItem(i+4, 4, C)
             
             P = QTableWidgetItem()
             P.setText(str(self.arl.rep_parts(idx, self.max_fleet.x[i])))
-            table.setItem(idx+4, 5, P)
+            table.setItem(i+4, 5, P)
             
             M = QTableWidgetItem()
             M.setText(str(self.arl.mttf(idx, self.max_fleet.x[i])))
-            table.setItem(idx+4, 6, M)
+            table.setItem(i+4, 6, M)
 
             gamma = QTableWidgetItem()
-            gamma.setText(str(self.max_fleet.x[idx]))
-            table.setItem(idx+4, 7, gamma)
+            gamma.setText(str(self.max_fleet.x[i]))
+            table.setItem(i+4, 7, gamma)
             
         
         
@@ -579,19 +584,19 @@ class ResultWindow(QDialog):
         for i, idx in enumerate(self.arl.componentIndices):
             CNo = QTableWidgetItem()
             CNo.setText(str(self.arl.lifecycle_cost(idx, 0)))
-            table.setItem(idx+4, 0, CNo)
+            table.setItem(i+4, 0, CNo)
             
             PNo = QTableWidgetItem()
             PNo.setText(str(self.arl.rep_parts(idx, 0)))
-            table.setItem(idx+4, 1, PNo)
+            table.setItem(i+4, 1, PNo)
             
             MNo = QTableWidgetItem()
             MNo.setText(str(self.arl.mttf(idx, 0)))
-            table.setItem(idx+4, 2, MNo)
+            table.setItem(i+4, 2, MNo)
 
             gamma = QTableWidgetItem()
             gamma.setText('0')
-            table.setItem(idx+4, 3, gamma)
+            table.setItem(i+4, 3, gamma)
                        
         
         #Populate No investment
